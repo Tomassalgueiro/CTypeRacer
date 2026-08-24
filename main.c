@@ -111,6 +111,7 @@ void render(const char *target, const char *typed, int len){
 			printf("\033[2m%c\033[0m", target[i]);
 		}
 	}
+	printf("\033[%dG", len+1);
 	fflush(stdout);
 }
 
