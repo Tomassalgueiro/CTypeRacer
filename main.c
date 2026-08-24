@@ -4,6 +4,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include <curl/curl.h>
+#include <cjson/cJSON.h>
 
 struct termios orig_termios;
 
@@ -22,17 +23,18 @@ struct quote {
 size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdata){
 	char **response = (char **)userdata;
 	size_t bytes = size * nmemb;
+	size_t curr_size = (*response) ? strlen(*response) : 0;
 
-	size_t curr_size = strlen(*response);
+	char *temp = realloc(*response, curr_size + bytes + 1);
+	if (!temp) return 0; // no memory avail
 
-	*response = realloc(*response, bytes);
-
+	*response = temp;
 	memcpy(*response + curr_size, ptr, bytes);
-
 	(*response)[curr_size + bytes] = '\0';
 
 	return bytes;
 }
+
 
 char* get_quote(){
 	CURL *curl;
@@ -56,6 +58,29 @@ char* get_quote(){
 	}
 	curl_global_cleanup();
 	return response;
+}
+
+int parse_json(char *message, struct quote* level){
+
+	if(!message) return 0;
+	cJSON *json = cJSON_Parse(message);
+	if(!json) return 0;
+
+	cJSON *id = cJSON_GetObjectItem(json, "id");
+	cJSON *quote = cJSON_GetObjectItem(json, "quote");
+	cJSON *author = cJSON_GetObjectItem(json, "author");
+
+	if(id && quote && author && cJSON_IsString(quote)){
+		level->id = id->valueint;
+		level->text = strdup(quote->valuestring);
+		level->author = strdup(author->valuestring);
+		cJSON_Delete(json);
+		return 1;
+	}
+
+	cJSON_Delete(json);
+	return 0;
+
 }
 
 void disable_raw_mode(){
@@ -92,11 +117,18 @@ void render(const char *target, const char *typed, int len){
 void tr_game_loop(){
 
 	// change for web request
-	const char *target = get_quote();
+	char *raw_json = get_quote();
+	struct quote level = {0};
 
+	if (!parse_json(raw_json, &level)){
+		free(raw_json);
+		fprintf(stderr, "Failed to load quote!\n");
+	}
+	free(raw_json);
+
+	char* target = level.text; 
 	int target_len = strlen(target);
-
-	char typed[256] = {0};
+	char typed[1024] = {0};
 	int current_idx = 0;
 
 	enable_raw_mode();
@@ -107,7 +139,6 @@ void tr_game_loop(){
 		if (read(STDIN_FILENO, &c, 1) <= 0) continue;
 
 		if (c==3) break;
-
 		if (c == 127 || c == 8) {
 			if (current_idx > 0){
 				current_idx--;
@@ -115,15 +146,15 @@ void tr_game_loop(){
 			}
 
 		}
-		else if (c >= 32 && c <= 126){
+		else if (c >= 32 && c <= 126 && current_idx < (int)sizeof(typed) - 1){
 			typed[current_idx] = c;
 			current_idx++;
 		}
 		render(target, typed, current_idx);
 	}
-
 	disable_raw_mode();
-	
+	free(level.author);
+	free(level.text);
 }
 
 void tr_main_menu(){
@@ -132,5 +163,5 @@ void tr_main_menu(){
 
 int main(){
 	tr_game_loop();
-
+	return 0;
 }

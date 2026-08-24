@@ -1,7 +1,7 @@
 # Compiler and flags
 CC = gcc
 CFLAGS = -Wall -Wextra -O2 $(shell pkg-config --cflags libcurl 2>/dev/null)
-LDFLAGS = $(shell pkg-config --libs libcurl 2>/dev/null || echo "-lcurl")
+LDFLAGS = $(shell pkg-config --libs libcurl cjson 2>/dev/null || echo "-lcurl -lcjson")
 
 TARGET = typeracer
 
