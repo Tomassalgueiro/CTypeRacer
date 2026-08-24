@@ -92,7 +92,7 @@ void render(const char *target, const char *typed, int len){
 void tr_game_loop(){
 
 	// change for web request
-	const char *target = "The quick brown fox jumps over the lazy dog";
+	const char *target = get_quote();
 
 	int target_len = strlen(target);
 
@@ -131,5 +131,6 @@ void tr_main_menu(){
 }
 
 int main(){
+	tr_game_loop();
 
 }
