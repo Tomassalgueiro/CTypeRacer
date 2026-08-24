@@ -1,9 +1,62 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <termios.h>
 #include <unistd.h>
+#include <curl/curl.h>
 
 struct termios orig_termios;
+
+struct quote {
+	int id;
+	char* text;
+	char* author;
+}; 
+
+/* 
+ * ptr <- data curl received
+ * size <- size of each item 
+ * nmemb <- number of items 
+ * usedata <- your own data
+ */
+size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdata){
+	char **response = (char **)userdata;
+	size_t bytes = size * nmemb;
+
+	size_t curr_size = strlen(*response);
+
+	*response = realloc(*response, bytes);
+
+	memcpy(*response + curr_size, ptr, bytes);
+
+	(*response)[curr_size + bytes] = '\0';
+
+	return bytes;
+}
+
+char* get_quote(){
+	CURL *curl;
+	CURLcode res;
+	char *response = malloc(1);
+	response[0] = '\0';
+	curl_global_init(CURL_GLOBAL_DEFAULT);
+	curl = curl_easy_init();
+
+	if (curl){
+		curl_easy_setopt(curl, CURLOPT_URL, "https://dummyjson.com/quotes/random");
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+		res = curl_easy_perform(curl);
+		if (res!=CURLE_OK){
+			fprintf(stderr,
+				"curl_easy_perform() failed: %s\n",
+				curl_easy_strerror(res));
+		}
+		curl_easy_cleanup(curl);
+	}
+	curl_global_cleanup();
+	return response;
+}
 
 void disable_raw_mode(){
 	tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
@@ -36,11 +89,13 @@ void render(const char *target, const char *typed, int len){
 	fflush(stdout);
 }
 
-void game_loop(){
+void tr_game_loop(){
 
 	// change for web request
 	const char *target = "The quick brown fox jumps over the lazy dog";
+
 	int target_len = strlen(target);
+
 	char typed[256] = {0};
 	int current_idx = 0;
 
@@ -68,10 +123,13 @@ void game_loop(){
 	}
 
 	disable_raw_mode();
-	printf("Congrats you completed the phase\n");
-	return 0;
+	
+}
 
+void tr_main_menu(){
+	 
 }
 
 int main(){
+
 }
