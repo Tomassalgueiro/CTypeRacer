@@ -5,6 +5,9 @@
 #include <unistd.h>
 #include <curl/curl.h>
 #include <cjson/cJSON.h>
+#include <time.h>
+
+#include "stats.h"
 
 struct termios orig_termios;
 
@@ -95,6 +98,10 @@ void enable_raw_mode(){
 	tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw);
 }
 
+void clean_screen(){
+	printf("\033[H\033[J");
+}
+
 void render(const char *target, const char *typed, int len){
 	printf("\r\033[K");
 
@@ -158,11 +165,50 @@ void tr_game_loop(){
 	free(level.text);
 }
 
-void tr_main_menu(){
-	 
+void tr_main_menu() {
+    enable_raw_mode();
+    
+    while (1) {
+        clean_screen();
+        printf("=== Welcome to CTypeRacer ===\n\n");
+        printf(" [1] Start Game\n");
+        printf(" [2] Stats\n");
+        printf(" [3] Exit\n\n");
+        printf("Select an option: ");
+        fflush(stdout);
+
+        char c;
+        if (read(STDIN_FILENO, &c, 1) <= 0) continue;
+
+        if ( c == '3') {
+            clean_screen();
+            printf("Thanks for playing!\n");
+            break;
+        }
+
+	// go to stats screen wip
+	if (c == '2') {
+            clean_screen();
+            printf("Stats screen WIP\n");
+            break;
+        }
+
+        if (c == '1') {
+            clean_screen();
+	    disable_raw_mode();
+            tr_game_loop();
+            
+            enable_raw_mode();
+            printf("\n\nPress any key to return to menu...");
+            fflush(stdout);
+            read(STDIN_FILENO, &c, 1);
+        }
+    }
+
+    disable_raw_mode();
 }
 
 int main(){
-	tr_game_loop();
+	tr_main_menu();
 	return 0;
 }
