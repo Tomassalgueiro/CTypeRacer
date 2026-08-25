@@ -4,6 +4,8 @@
 #include <stddef.h>
 typedef struct stats Stats;
 
+static int get_cache_path(char *dest, size_t max_len);
+
 Stats* stats_create(void);
 void stats_free(Stats *s);
 
