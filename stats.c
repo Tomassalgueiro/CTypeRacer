@@ -1,4 +1,3 @@
-
 #include "stats.h"
 #include <stdio.h>
 #include <time.h>
@@ -21,7 +20,7 @@ void stats_free(Stats *s){
 }
 
 int stats_load(Stats *s, const char *filename){
-	if (!s || filename) return -1;
+	if (!s || !filename) return -1;
 
 	FILE *fp = fopen (filename, "rb");
 	if (!fp) return -1;
@@ -49,7 +48,7 @@ void stats_record_game(Stats *s, double time_elapsed_seconds, size_t chars_typed
 	
 	s->games_played += 1;
 	s->time_elapsed += time_elapsed_seconds;
-	s->games_played += (long int)chars_typed;
+	s->total_chars += (long int)chars_typed;
 
 	double session_wpm = stats_calculate_wpm(time_elapsed_seconds, chars_typed);
 	if (session_wpm > s->best_wpm){
