@@ -86,6 +86,14 @@ int parse_json(char *message, struct quote* level){
 
 }
 
+// this function will turn *almost* every character to lowercase 
+void quote_to_lower(struct quote* level){
+	if (!level) return;
+
+
+
+}
+
 void disable_raw_mode(){
 	tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig_termios);
 	printf("\033[?25h\033[0m\n");
