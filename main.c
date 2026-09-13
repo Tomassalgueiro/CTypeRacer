@@ -1,6 +1,8 @@
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include <termios.h>
 #include <unistd.h>
 #include <curl/curl.h>
@@ -86,12 +88,29 @@ int parse_json(char *message, struct quote* level){
 
 }
 
-// this function will turn *almost* every character to lowercase 
+static bool isSingleI(const char *str, size_t i, size_t len){
+	if (str[i] != 'I' || str[i] != 'i') return false;
+
+	bool prev_boundary = (i == 0) || !isalpha((unsigned char)str[i - 1]);
+	bool next_boundary = (i + 1 == len) || !isalpha((unsigned char)str[i - 1]);
+
+	return prev_boundary && next_boundary;
+}
+
 void quote_to_lower(struct quote* level){
-	if (!level) return;
+	if (!level || !level->text) return;
 
+	size_t len = strlen(level->text);
+	if (len <= 1) return;
 
-
+	// we can start at index 1 because the first char is always upper case
+	for(size_t i = 1; i < len; i++){
+		if (isupper((unsigned char)level->text[i])){
+			if(!isSingleI(level->text, i, len)){
+				level->text[i] = (char)tolower((unsigned char)level->text[i]);
+			}
+		}	
+	}
 }
 
 void disable_raw_mode(){
@@ -142,6 +161,7 @@ void tr_game_loop(){
 	}
 	free(raw_json);
 
+	quote_to_lower(&level);
 	char* target = level.text; 
 	int target_len = strlen(target);
 	char typed[1024] = {0};
