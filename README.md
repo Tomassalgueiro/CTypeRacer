@@ -44,7 +44,7 @@ sudo dnf install gcc make libcurl-devel cjson-devel
 
 1. Clone the repository and navigate into the project directory:
    ```bash
-   git clone <repository-url>
+   git clone git@github.com:Tomassalgueiro/CTypeRacer.git 
    cd CTypeRacer
    ```
 
