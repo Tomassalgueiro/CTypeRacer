@@ -8,6 +8,7 @@
 #include <curl/curl.h>
 #include <cjson/cJSON.h>
 #include <time.h>
+#include <sys/ioctl.h>
 
 #include "stats.h"
 
@@ -131,7 +132,11 @@ void clean_screen(){
 }
 
 void render(const char *target, const char *typed, int len){
-	printf("\r\033[K");
+	struct winsize w;
+	ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+	int cols = (w.ws_col > 0) ? w.ws_col : 80;
+
+	printf("\033[H\033[J");
 
 	for(int i = 0; target[i] != '\0'; i++){
 		if (i < len){
@@ -146,7 +151,9 @@ void render(const char *target, const char *typed, int len){
 			printf("\033[2m%c\033[0m", target[i]);
 		}
 	}
-	printf("\033[%dG", len+1);
+	int target_row = (len/cols) + 1;
+	int target_col = (len%cols) + 1;
+	printf("\033[%d;%dH", target_row, target_col);
 	fflush(stdout);
 }
 
