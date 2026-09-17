@@ -90,7 +90,7 @@ int parse_json(char *message, struct quote* level){
 }
 
 static bool isSingleI(const char *str, size_t i, size_t len){
-	if (str[i] != 'I' || str[i] != 'i') return false;
+	if (str[i] != 'I') return false;
 
 	bool prev_boundary = (i == 0) || !isalpha((unsigned char)str[i - 1]);
 	bool next_boundary = (i + 1 == len) || !isalpha((unsigned char)str[i - 1]);
@@ -150,7 +150,19 @@ void render(const char *target, const char *typed, int len){
 	fflush(stdout);
 }
 
-void tr_game_loop(){
+void handle_game_completion(Stats *s, struct timespec start, struct timespec end, size_t chars_typed){
+	if(!s || chars_typed == 0){ return; }
+
+	double elapsed = (end.tv_sec - start.tv_sec) + ((end.tv_nsec - start.tv_nsec) / 1000000000.0);
+
+	stats_record_game(s, elapsed, chars_typed);
+	stats_save_cache(s);
+
+	double session_wpm = stats_calculate_wpm(elapsed, chars_typed); 
+	printf("\nFinished in %.2fs | Speed: %.1f WPM", elapsed, session_wpm);
+}
+
+void tr_game_loop(Stats *stats){
 
 	// change for web request
 	char *raw_json = get_quote();
@@ -162,6 +174,7 @@ void tr_game_loop(){
 	}
 	free(raw_json);
 
+	bool hasStarted = false;
 	quote_to_lower(&level);
 	char* target = level.text; 
 	int target_len = strlen(target);
@@ -171,21 +184,21 @@ void tr_game_loop(){
 
 	enable_raw_mode();
 	render(target, typed, current_idx);
-	clock_gettime(CLOCK_MONOTONIC, &start);
-	printf("started timer");
 	while (current_idx < target_len){
 		char c;
 		if (read(STDIN_FILENO, &c, 1) <= 0) continue;
-
 		if (c==3) break;
 		if (c == 127 || c == 8) {
 			if (current_idx > 0){
 				current_idx--;
 				typed[current_idx] = '\0';
 			}
-
 		}
 		else if (c >= 32 && c <= 126 && current_idx < (int)sizeof(typed) - 1){
+			if (!hasStarted){
+				clock_gettime(CLOCK_MONOTONIC, &start);
+				hasStarted = true;
+			}
 			typed[current_idx] = c;
 			current_idx++;
 		}
@@ -193,20 +206,48 @@ void tr_game_loop(){
 	}
 	clock_gettime(CLOCK_MONOTONIC, &end);
 	disable_raw_mode();
+	handle_game_completion(stats, start, end, target_len);
 	free(level.author);
 	free(level.text);
 }
 
+void get_time_hour(double time){
+	if (time < 0) return;
+	int minutes = 0, seconds = 0, hours = 0;
+	hours = time / 3600;
+	minutes = (time - hours * 3600) / 60;
+	seconds = time - hours * 3600 - minutes * 60;
+	if (hours < 10 && minutes >= 10){
+		printf("0%d:%d:%d\n", hours, minutes, seconds);
+	} else if (hours < 10 && minutes < 10) {
+		printf("0%d:0%d:%d\n", hours, minutes, seconds);
+	} else if ( hours >= 10 && minutes <10) {
+		printf("%d:0%d:%d\n", hours, minutes, seconds);
+	}
+}
+
+void tr_draw_stats(Stats *s) {
+        printf("=== \033[5mStats\033[0m ===\n\n");
+        printf(" Games played: %d\n", stats_get_games_played(s));
+        printf(" Best wpm: %.2lf\n", stats_get_best_wpm(s));
+	printf(" Total chars typed: %ld\n", stats_get_total_chars_typed(s));
+	printf(" Total time elapsed: "); 
+	get_time_hour(stats_get_total_time_elapsed(s));	
+}
+
 void tr_main_menu() {
-    enable_raw_mode();
-    
+    Stats *stats = stats_create();
+    stats_load_cache(stats);
+
+    enable_raw_mode(); 
+
     while (1) {
         clean_screen();
         printf("=== Welcome to CTypeRacer ===\n\n");
         printf(" [1] Start Game\n");
         printf(" [2] Stats\n");
         printf(" [3] Exit\n\n");
-        printf("Select an option: ");
+        printf(" Select an option: ");
         fflush(stdout);
 
         char c;
@@ -215,20 +256,26 @@ void tr_main_menu() {
         if ( c == '3') {
             clean_screen();
             printf("Thanks for playing!\n");
+	    stats_free(stats);
             break;
         }
 
 	// go to stats screen wip
 	if (c == '2') {
             clean_screen();
-            printf("Stats screen WIP\n");
-            break;
+	    disable_raw_mode();
+	    tr_draw_stats(stats);
+
+            enable_raw_mode();
+            printf("\n\nPress any key to return to menu...");
+            fflush(stdout);
+            read(STDIN_FILENO, &c, 1);
         }
 
         if (c == '1') {
             clean_screen();
 	    disable_raw_mode();
-            tr_game_loop();
+            tr_game_loop(stats);
             
             enable_raw_mode();
             printf("\n\nPress any key to return to menu...");

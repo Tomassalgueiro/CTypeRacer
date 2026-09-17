@@ -18,14 +18,19 @@ static int get_cache_path(char *dest, size_t max_len){
 	if (!home) return -1;
 
 	char dir_path[512];
+	char cache_root[512];
+
+	snprintf(cache_root, sizeof(cache_root), "%s/.cache", home);
 	snprintf(dir_path, sizeof(dir_path), "%s/.cache/CTypeRacer", home);
 
-	char cache_root[512];
-	snprintf(cache_root, sizeof(cache_root), "%s/.cache", home);
 	mkdir(cache_root, 0755);
 	mkdir(dir_path, 0755);
 
-	snprintf(dest, max_len, "%s/stats.bin", dir_path);
+	int written = snprintf(dest, max_len, "%s/.cache/CTypeRacer/stats.bin", home);
+	if (written < 0 || (size_t)written >= max_len) {
+	    return -1;
+	}
+
 	return 0;
 
 }
@@ -99,4 +104,12 @@ double stats_get_best_wpm(const Stats *s){
 
 int stats_get_games_played(const Stats *s){
 	return s ? s->games_played : 0;
+}
+
+long int stats_get_total_chars_typed(const Stats *s){
+	return s ? s->total_chars : 0;
+}
+
+double stats_get_total_time_elapsed(const Stats *s){
+	return s ? s->time_elapsed : 0;
 }
