@@ -4,13 +4,11 @@
 #include <stddef.h>
 typedef struct stats Stats;
 
-static int get_cache_path(char *dest, size_t max_len);
-
 Stats* stats_create(void);
 void stats_free(Stats *s);
 
-int stats_load(Stats *s, const char *filename);
-int stats_save(const Stats *s, char *filename);
+int stats_load_cache(Stats *s);
+int stats_save_cache(const Stats *s);
 
 void stats_record_game(Stats *s, double time_elapsed, size_t chars_typed);
 

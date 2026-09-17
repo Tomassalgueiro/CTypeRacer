@@ -1,3 +1,4 @@
+#include <bits/time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,6 +10,7 @@
 
 #include "stats.h"
 
+struct timespec start, end;
 struct termios orig_termios;
 
 struct quote {
@@ -138,10 +140,12 @@ void tr_game_loop(){
 	int target_len = strlen(target);
 	char typed[1024] = {0};
 	int current_idx = 0;
+	
 
 	enable_raw_mode();
 	render(target, typed, current_idx);
-
+	clock_gettime(CLOCK_MONOTONIC, &start);
+	printf("started timer");
 	while (current_idx < target_len){
 		char c;
 		if (read(STDIN_FILENO, &c, 1) <= 0) continue;
@@ -160,6 +164,7 @@ void tr_game_loop(){
 		}
 		render(target, typed, current_idx);
 	}
+	clock_gettime(CLOCK_MONOTONIC, &end);
 	disable_raw_mode();
 	free(level.author);
 	free(level.text);

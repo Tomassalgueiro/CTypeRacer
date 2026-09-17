@@ -5,7 +5,7 @@ LDFLAGS = $(shell pkg-config --libs libcurl cjson 2>/dev/null || echo "-lcurl -l
 
 TARGET = typeracer
 
-SRCS = main.c
+SRCS = main.c stats.c
 OBJS = $(SRCS:.c=.o)
 
 all: $(TARGET)
